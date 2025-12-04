@@ -15,7 +15,7 @@ class Disorder(Base):
     description = Column(Text, nullable=False)
     symptoms = Column(Text)
     
- Timestamps
+    # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 # Remedy model - stores treatment options
