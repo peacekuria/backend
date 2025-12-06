@@ -1,9 +1,8 @@
-from pydantic import BaseSettings
+import os
 
-class Settings(BaseSettings):
-    DATABASE_URL: str = "sqlite:///./test.db"
-    
-    class Config:
-        env_file = ".env"
+class Settings:
+    """Application configuration settings"""
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./test.db")
 
 settings = Settings()
+

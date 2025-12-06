@@ -1,8 +1,6 @@
 # backend/app/main.py
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Optional
 import uvicorn
 from app.database import engine, Base
 from app.config import settings
@@ -12,8 +10,8 @@ Base.metadata.create_all(bind=engine)
 
 # Initialize FastAPI app
 app = FastAPI(
-    title=settings.APP_NAME,
-    version=settings.VERSION
+    title="Mental Wellness Checker API",
+    version="1.0.0"
 )
 
 # Configure CORS (allow frontend to connect)
@@ -24,25 +22,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# ========== DATA MODELS ==========
-
-# Model for assessment request
-class AssessmentRequest(BaseModel):
-    answers: List[str]  # List of 'yes', 'no', 'unsure' answers
-
-# Model for assessment response
-class AssessmentResponse(BaseModel):
-    result: str
-    remedies: List[str]
-    severity: str
-
-# Model for disorder info
-class DisorderResponse(BaseModel):
-    id: int
-    name: str
-    description: str
-    remedies: List[str]
 
 # ========== IN-MEMORY DATA ==========
 
@@ -94,8 +73,8 @@ def root():
         "version": settings.VERSION
     }
 
-@app.post("/api/assessments", response_model=AssessmentResponse)
-def create_assessment(assessment: AssessmentRequest):
+@app.post("/api/assessments")
+def create_assessment(assessment: dict):
     """
     Process mental health assessment
     
@@ -103,68 +82,68 @@ def create_assessment(assessment: AssessmentRequest):
     - Returns assessment result and remedies
     """
     
+    answers = assessment.get("answers", [])
+    
     # Check if we have 5 answers
-    if len(assessment.answers) != 5:
+    if len(answers) != 5:
         raise HTTPException(
             status_code=400, 
             detail="Please answer all 5 questions"
         )
     
     # Count 'yes' answers
-    yes_count = sum(1 for answer in assessment.answers if answer.lower() == 'yes')
+    yes_count = sum(1 for answer in answers if isinstance(answer, str) and answer.lower() == 'yes')
     
     # Determine result based on yes count
     if yes_count >= 3:
-        return AssessmentResponse(
-            result="You may benefit from professional support. Consider speaking with a mental health professional.",
-            remedies=[
+        return {
+            "result": "You may benefit from professional support. Consider speaking with a mental health professional.",
+            "remedies": [
                 "Schedule appointment with therapist",
                 "Practice self-care daily",
                 "Maintain sleep schedule",
                 "Connect with support network",
                 "Consider joining support group"
             ],
-            severity="high"
-        )
+            "severity": "high"
+        }
     elif yes_count >= 1:
-        return AssessmentResponse(
-            result="You're experiencing some symptoms. Monitor your mental health and practice self-care.",
-            remedies=[
+        return {
+            "result": "You're experiencing some symptoms. Monitor your mental health and practice self-care.",
+            "remedies": [
                 "Practice mindfulness",
                 "Maintain daily routine",
                 "Exercise regularly",
                 "Talk to trusted friends",
                 "Monitor your mood"
             ],
-            severity="medium"
-        )
+            "severity": "medium"
+        }
     else:
-        return AssessmentResponse(
-            result="You appear to be managing well. Continue healthy habits.",
-            remedies=[
+        return {
+            "result": "You appear to be managing well. Continue healthy habits.",
+            "remedies": [
                 "Continue current habits",
                 "Stay connected with others",
                 "Practice stress management",
                 "Regular self-check-ins",
                 "Maintain work-life balance"
             ],
-            severity="low"
-        )
+            "severity": "low"
+        }
 
-@app.get("/api/disorders", response_model=List[DisorderResponse])
+@app.get("/api/disorders")
 def get_all_disorders():
     """Get list of all available disorders"""
     disorders_list = []
     
     for disorder_id, data in DISORDERS_DATA.items():
-        disorders_list.append(
-            DisorderResponse(
-                id=disorder_id,
-                name=data["name"],
-                description=data["description"],
-                remedies=data["remedies"]
-            )
-        )
+        disorders_list.append({
+            "id": disorder_id,
+            "name": data["name"],
+            "description": data["description"],
+            "remedies": data["remedies"]
+        })
     
     return disorders_list
 
@@ -175,12 +154,12 @@ def search_disorder(name: str):
     
     for disorder_id, data in DISORDERS_DATA.items():
         if name_lower in data["name"].lower():
-            return DisorderResponse(
-                id=disorder_id,
-                name=data["name"],
-                description=data["description"],
-                remedies=data["remedies"]
-            )
+            return {
+                "id": disorder_id,
+                "name": data["name"],
+                "description": data["description"],
+                "remedies": data["remedies"]
+            }
     
     # If not found
     raise HTTPException(status_code=404, detail="Disorder not found")
