@@ -1,37 +1,39 @@
-# backend/app/models.py
+# Database models for mental health application
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from app.database import Base
 
-# Disorder model - stores mental health conditions
+# ===== DISORDER MODEL =====
+# Stores information about mental health conditions
 class Disorder(Base):
-    _tablename_ = "disorders"
+    __tablename__ = "disorders"
     
-    # Primary key
+    # Primary key for the disorder
     id = Column(Integer, primary_key=True, index=True)
     
-    # Disorder details
+    # Disorder information
     name = Column(String, nullable=False)
     description = Column(Text, nullable=False)
     symptoms = Column(Text)
     
-    # Timestamps
+    # Timestamp when record was created
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-# Remedy model - stores treatment options
+# ===== REMEDY MODEL =====
+# Stores treatment options for disorders
 class Remedy(Base):
-    _tablename_ = "remedies"
+    __tablename__ = "remedies"
     
-    # Primary key
+    # Primary key for the remedy
     id = Column(Integer, primary_key=True, index=True)
     
-    # Foreign key to disorder
+    # Link to the disorder this remedy treats
     disorder_id = Column(Integer, ForeignKey("disorders.id"), nullable=False)
     
-    # Remedy details
+    # Remedy information
     title = Column(String, nullable=False)
     description = Column(Text, nullable=False)
-    category = Column(String)  # therapy, medication, lifestyle
+    category = Column(String)  # Type: therapy, medication, or lifestyle
     
-    # Timestamps
+    # Timestamp when record was created
     created_at = Column(DateTime(timezone=True), server_default=func.now())

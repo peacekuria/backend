@@ -1,20 +1,19 @@
-# backend/app/main.py
+# FastAPI application for mental wellness assessment and disorder information
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from app.database import engine, Base
-from app.config import settings
 
-# Create database tables
+# Initialize database tables
 Base.metadata.create_all(bind=engine)
 
-# Initialize FastAPI app
+# Create FastAPI application instance
 app = FastAPI(
     title="Mental Wellness Checker API",
     version="1.0.0"
 )
 
-# Configure CORS (allow frontend to connect)
+# Enable CORS middleware to allow frontend communication
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],  # React app URL
@@ -25,7 +24,7 @@ app.add_middleware(
 
 # ========== IN-MEMORY DATA ==========
 
-# Sample disorders data (in real app, this would come from database)
+# Sample disorders database (in production, this would come from database)
 DISORDERS_DATA = {
     1: {
         "name": "Depression",
@@ -64,37 +63,38 @@ DISORDERS_DATA = {
 
 # ========== API ROUTES ==========
 
+# Root endpoint - health check
 @app.get("/")
 def root():
-    """Root endpoint - API health check"""
+    """API health check endpoint"""
     return {
         "message": "Mental Wellness Checker API",
         "status": "running",
-        "version": settings.VERSION
+        "version": "1.0.0"
     }
 
+# Assessment endpoint - evaluate mental health
 @app.post("/api/assessments")
 def create_assessment(assessment: dict):
     """
-    Process mental health assessment
-    
-    - Receives answers to 5 questions
-    - Returns assessment result and remedies
+    Process mental health assessment based on user answers
+    - Expects 5 yes/no answers
+    - Returns severity level and treatment recommendations
     """
     
     answers = assessment.get("answers", [])
     
-    # Check if we have 5 answers
+    # Validate we have exactly 5 answers
     if len(answers) != 5:
         raise HTTPException(
             status_code=400, 
             detail="Please answer all 5 questions"
         )
     
-    # Count 'yes' answers
+    # Count positive responses (yes answers)
     yes_count = sum(1 for answer in answers if isinstance(answer, str) and answer.lower() == 'yes')
     
-    # Determine result based on yes count
+    # Return assessment based on symptom severity
     if yes_count >= 3:
         return {
             "result": "You may benefit from professional support. Consider speaking with a mental health professional.",
@@ -132,9 +132,10 @@ def create_assessment(assessment: dict):
             "severity": "low"
         }
 
+# Get all disorders endpoint
 @app.get("/api/disorders")
 def get_all_disorders():
-    """Get list of all available disorders"""
+    """Retrieve list of all mental health disorders in the database"""
     disorders_list = []
     
     for disorder_id, data in DISORDERS_DATA.items():
@@ -147,6 +148,7 @@ def get_all_disorders():
     
     return disorders_list
 
+# Search disorder endpoint
 @app.get("/api/disorders/search")
 def search_disorder(name: str):
     """Search for disorder by name"""
@@ -166,5 +168,7 @@ def search_disorder(name: str):
 
 # ========== RUN APPLICATION ==========
 
+# Start the FastAPI server
 if __name__ == "__main__":
+    # Run on all interfaces, port 8000, with auto-reload for development
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
